@@ -1,0 +1,37 @@
+# linux-first-aid .gitignore
+
+# Build artifacts
+build/
+*.tar.gz
+*.deb
+*.rpm
+*.pkg.tar.*
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/var/log/
+
+# Cache
+.cache/
+__pycache__/
+
+# Test output
+test-results/
+coverage/
+
+# Local config
+config/local.yaml
+
+# Temporary files
+/tmp/linux-first-aid-*
