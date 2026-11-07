@@ -48,8 +48,9 @@ lfa_analyze() {
     local analyze_type="${1:-}"
     shift || true
 
-    if [[ -z "$analyze_type" ]]; then
+    if [[ "$analyze_type" == "-h" || "$analyze_type" == "--help" || -z "$analyze_type" ]]; then
         lfa_analyze_usage
+        [[ -n "$analyze_type" ]] && return 0
         return 2
     fi
 
@@ -86,7 +87,7 @@ lfa_analyze() {
                 output="$2"
                 shift 2
                 ;;
-            -h|--help)
+            -h | --help)
                 lfa_analyze_usage
                 return 0
                 ;;
@@ -151,8 +152,8 @@ lfa_analyze_logs() {
     fi
 
     log_subsection "Top error sources"
-    journalctl -p "$level" --since "$since" --no-pager 2>/dev/null | \
-        awk '{for(i=1;i<=NF;i++) if($i ~ /^[-_.a-zA-Z0-9]+@/ || $i ~ /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/) print $i}' | \
+    journalctl -p "$level" --since "$since" --no-pager 2>/dev/null |
+        awk '{for(i=1;i<=NF;i++) if($i ~ /^[-_.a-zA-Z0-9]+@/ || $i ~ /^[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/) print $i}' |
         sort | uniq -c | sort -rn | head -10 | while read -r line; do
         results+=("source:$line")
     done
@@ -277,7 +278,7 @@ lfa_analyze_crashes() {
     done
 
     log_subsection "Application Crashes (journal)"
-    journalctl -p crit,alert,emerg --since "7 days ago" --no-pager 2>/dev/null | \
+    journalctl -p crit,alert,emerg --since "7 days ago" --no-pager 2>/dev/null |
         grep -i "crash\|segfault\|abort\|core dumped" | head -20 | while read -r line; do
         results+=("app_crash:$line")
     done
@@ -311,7 +312,7 @@ lfa_analyze_security() {
     done
 
     log_subsection "SSH Authentication Failures"
-    journalctl -u sshd --since "$since" --no-pager 2>/dev/null | \
+    journalctl -u sshd --since "$since" --no-pager 2>/dev/null |
         grep -i "failed\|invalid\|error" | head -20 | while read -r line; do
         results+=("ssh_fail:$line")
     done
@@ -352,7 +353,7 @@ lfa_output_analysis() {
             json+='"results":['
             local first=true
             for result in "${results[@]}"; do
-                IFS=':' read -r category content <<< "$result"
+                IFS=':' read -r category content <<<"$result"
                 if [[ "$first" == "true" ]]; then
                     first=false
                 else
@@ -363,19 +364,19 @@ lfa_output_analysis() {
             json+="]}"
             echo "$json"
             ;;
-        text|*)
+        text | *)
             echo "=== $type analysis ==="
             echo "Timestamp: $(lfa_timestamp)"
             echo "Hostname: $(hostname)"
             echo ""
             for result in "${results[@]}"; do
-                IFS=':' read -r category content <<< "$result"
+                IFS=':' read -r category content <<<"$result"
                 echo "[$category] $content"
             done
             ;;
     esac
 
     if [[ -n "$output" ]]; then
-        lfa_output_analysis "$type" "$format" "" "${results[@]}" > "$output"
+        lfa_output_analysis "$type" "$format" "" "${results[@]}" >"$output"
     fi
 }

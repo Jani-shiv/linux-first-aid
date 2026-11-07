@@ -8,25 +8,25 @@
 
 set -euo pipefail
 
-readonly LOG_LEVEL_DEBUG=0
-readonly LOG_LEVEL_INFO=1
-readonly LOG_LEVEL_WARN=2
-readonly LOG_LEVEL_ERROR=3
-readonly LOG_LEVEL_QUIET=4
+LOG_LEVEL_DEBUG=0
+LOG_LEVEL_INFO=1
+LOG_LEVEL_WARN=2
+LOG_LEVEL_ERROR=3
+LOG_LEVEL_QUIET=4
 
 LFA_LOG_LEVEL="${LFA_LOG_LEVEL:-$LOG_LEVEL_INFO}"
 LFA_LOG_FILE="${LFA_LOG_FILE:-}"
 LFA_LOG_JSON="${LFA_LOG_JSON:-false}"
 LFA_NO_COLOR="${LFA_NO_COLOR:-false}"
 
-readonly COLOR_RESET='\033[0m'
-readonly COLOR_RED='\033[0;31m'
-readonly COLOR_GREEN='\033[0;32m'
-readonly COLOR_YELLOW='\033[1;33m'
-readonly COLOR_BLUE='\033[0;34m'
-readonly COLOR_MAGENTA='\033[0;35m'
-readonly COLOR_CYAN='\033[0;36m'
-readonly COLOR_BOLD='\033[1m'
+COLOR_RESET='\033[0m'
+COLOR_RED='\033[0;31m'
+COLOR_GREEN='\033[0;32m'
+COLOR_YELLOW='\033[1;33m'
+COLOR_BLUE='\033[0;34m'
+COLOR_MAGENTA='\033[0;35m'
+COLOR_CYAN='\033[0;36m'
+COLOR_BOLD='\033[1m'
 
 lfa_init_logger() {
     local log_level="${LFA_LOG_LEVEL:-info}"
@@ -42,11 +42,11 @@ lfa_init_logger() {
     else
         case "${log_level,,}" in
             debug) LFA_LOG_LEVEL=$LOG_LEVEL_DEBUG ;;
-            info)  LFA_LOG_LEVEL=$LOG_LEVEL_INFO ;;
-            warn)  LFA_LOG_LEVEL=$LOG_LEVEL_WARN ;;
+            info) LFA_LOG_LEVEL=$LOG_LEVEL_INFO ;;
+            warn) LFA_LOG_LEVEL=$LOG_LEVEL_WARN ;;
             error) LFA_LOG_LEVEL=$LOG_LEVEL_ERROR ;;
             quiet) LFA_LOG_LEVEL=$LOG_LEVEL_QUIET ;;
-            *)     LFA_LOG_LEVEL=$LOG_LEVEL_INFO ;;
+            *) LFA_LOG_LEVEL=$LOG_LEVEL_INFO ;;
         esac
     fi
 
@@ -91,7 +91,7 @@ _lfa_log() {
     fi
 
     if [[ -n "$LFA_LOG_FILE" ]]; then
-        echo "$formatted_message" >> "$LFA_LOG_FILE"
+        echo "$formatted_message" >>"$LFA_LOG_FILE"
     fi
 
     if [[ $level -ge $LOG_LEVEL_WARN ]]; then
@@ -130,7 +130,7 @@ log_section() {
     local message="$1"
     local line="========================================"
     if [[ "$LFA_LOG_JSON" != "true" ]]; then
-        echo -e "\n${COLOR_BOLD}${COLOR_CYAN}${line}${COLOR_RESET"
+        echo -e "\n${COLOR_BOLD}${COLOR_CYAN}${line}${COLOR_RESET}"
         echo -e "${COLOR_BOLD}${COLOR_CYAN} ${message}${COLOR_RESET}"
         echo -e "${COLOR_BOLD}${COLOR_CYAN}${line}${COLOR_RESET}\n"
     else
@@ -211,21 +211,21 @@ lfa_set_log_level() {
     local level="$1"
     case "${level,,}" in
         debug) LFA_LOG_LEVEL=$LOG_LEVEL_DEBUG ;;
-        info)  LFA_LOG_LEVEL=$LOG_LEVEL_INFO ;;
-        warn)  LFA_LOG_LEVEL=$LOG_LEVEL_WARN ;;
+        info) LFA_LOG_LEVEL=$LOG_LEVEL_INFO ;;
+        warn) LFA_LOG_LEVEL=$LOG_LEVEL_WARN ;;
         error) LFA_LOG_LEVEL=$LOG_LEVEL_ERROR ;;
         quiet) LFA_LOG_LEVEL=$LOG_LEVEL_QUIET ;;
-        *)     return 1 ;;
+        *) return 1 ;;
     esac
 }
 
 lfa_get_log_level() {
     case $LFA_LOG_LEVEL in
-        $LOG_LEVEL_DEBUG) echo "debug" ;;
-        $LOG_LEVEL_INFO)  echo "info" ;;
-        $LOG_LEVEL_WARN)  echo "warn" ;;
-        $LOG_LEVEL_ERROR) echo "error" ;;
-        $LOG_LEVEL_QUIET) echo "quiet" ;;
-        *)                echo "info" ;;
+        "$LOG_LEVEL_DEBUG") echo "debug" ;;
+        "$LOG_LEVEL_INFO") echo "info" ;;
+        "$LOG_LEVEL_WARN") echo "warn" ;;
+        "$LOG_LEVEL_ERROR") echo "error" ;;
+        "$LOG_LEVEL_QUIET") echo "quiet" ;;
+        *) echo "info" ;;
     esac
 }

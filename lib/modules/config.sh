@@ -43,8 +43,9 @@ lfa_config_cmd() {
     local subcmd="${1:-}"
     shift || true
 
-    if [[ -z "$subcmd" ]]; then
+    if [[ "$subcmd" == "-h" || "$subcmd" == "--help" || -z "$subcmd" ]]; then
         lfa_config_usage
+        [[ -n "$subcmd" ]] && return 0
         return 2
     fi
 
@@ -70,7 +71,7 @@ lfa_config_cmd() {
         path)
             lfa_config_path
             ;;
-        -h|--help)
+        -h | --help)
             lfa_config_usage
             return 0
             ;;

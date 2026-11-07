@@ -18,12 +18,12 @@ assert_equals() {
 
     if [[ "$expected" == "$actual" ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Expected: $expected"
         echo "    Actual:   $actual"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -34,12 +34,12 @@ assert_contains() {
 
     if [[ "$haystack" == *"$needle"* ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Haystack: $haystack"
         echo "    Needle:   $needle"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -47,13 +47,13 @@ test_lfa_load_config_defaults() {
     echo "Testing lfa_load_config with defaults..."
     LFA_CONFIG_FILE="/nonexistent"
     lfa_load_config
-    assert_equals "300" "${LFA_CONFIG[general.check_interval]}"
-    assert_equals "warn" "${LFA_CONFIG[general.alert_threshold]}"
+    assert_equals "300" "${LFA_CONFIG["general.check_interval"]}"
+    assert_equals "warn" "${LFA_CONFIG["general.alert_threshold"]}"
 }
 
 test_lfa_get_config() {
     echo "Testing lfa_get_config..."
-    LFA_CONFIG[test.key]="test_value"
+    LFA_CONFIG["test.key"]="test_value"
     assert_equals "test_value" "$(lfa_get_config "test.key")"
     assert_equals "default" "$(lfa_get_config "nonexistent" "default")"
 }
@@ -61,13 +61,13 @@ test_lfa_get_config() {
 test_lfa_set_config() {
     echo "Testing lfa_set_config..."
     lfa_set_config "new.key" "new_value"
-    assert_equals "new_value" "${LFA_CONFIG[new.key]}"
+    assert_equals "new_value" "${LFA_CONFIG["new.key"]}"
 }
 
 test_lfa_list_config() {
     echo "Testing lfa_list_config..."
-    LFA_CONFIG[test.a]="1"
-    LFA_CONFIG[test.b]="2"
+    LFA_CONFIG["test.a"]="1"
+    LFA_CONFIG["test.b"]="2"
     local output
     output=$(lfa_list_config "test.")
     assert_contains "$output" "test.a: 1"
@@ -76,10 +76,10 @@ test_lfa_list_config() {
 
 test_lfa_reset_config() {
     echo "Testing lfa_reset_config..."
-    LFA_CONFIG[custom.key]="custom"
+    LFA_CONFIG["custom.key"]="custom"
     lfa_reset_config
-    assert_equals "" "${LFA_CONFIG[custom.key]:-}"
-    assert_equals "300" "${LFA_CONFIG[general.check_interval]}"
+    assert_equals "" "${LFA_CONFIG["custom.key"]:-}"
+    assert_equals "300" "${LFA_CONFIG["general.check_interval"]}"
 }
 
 main() {

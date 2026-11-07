@@ -52,8 +52,9 @@ lfa_check() {
     local check_name="${1:-}"
     shift || true
 
-    if [[ -z "$check_name" ]]; then
+    if [[ "$check_name" == "-h" || "$check_name" == "--help" || -z "$check_name" ]]; then
         lfa_check_usage
+        [[ -n "$check_name" ]] && return 0
         return 2
     fi
 
@@ -85,7 +86,7 @@ lfa_check() {
                 output="$2"
                 shift 2
                 ;;
-            -h|--help)
+            -h | --help)
                 lfa_check_usage
                 return 0
                 ;;
@@ -144,7 +145,7 @@ lfa_check_disk() {
     local crit_threshold=90
 
     if [[ -n "$threshold" ]]; then
-        IFS=',' read -r warn_threshold crit_threshold <<< "$threshold"
+        IFS=',' read -r warn_threshold crit_threshold <<<"$threshold"
     fi
 
     local results=()
@@ -161,14 +162,14 @@ lfa_check_disk() {
 
             if [[ "$usage" =~ ^[0-9]+$ ]]; then
                 local status="ok"
-                if (( usage >= crit_threshold )); then
+                if ((usage >= crit_threshold)); then
                     status="critical"
-                elif (( usage >= warn_threshold ]]; then
+                elif ((usage >= warn_threshold)); then
                     status="warning"
                 fi
 
                 results+=("$mount:$usage:$status:$fs:$avail")
-                if (( usage > max_usage )); then
+                if ((usage > max_usage)); then
                     max_usage=$usage
                     max_mount=$mount
                 fi
@@ -178,9 +179,9 @@ lfa_check_disk() {
 
     lfa_output_check_results "disk" "$format" "$output" "${results[@]}"
 
-    if (( max_usage >= crit_threshold )); then
+    if ((max_usage >= crit_threshold)); then
         return 2
-    elif (( max_usage >= warn_threshold )); then
+    elif ((max_usage >= warn_threshold)); then
         return 1
     fi
     return 0
@@ -194,7 +195,7 @@ lfa_check_memory() {
     local crit_threshold=90
 
     if [[ -n "$threshold" ]]; then
-        IFS=',' read -r warn_threshold crit_threshold <<< "$threshold"
+        IFS=',' read -r warn_threshold crit_threshold <<<"$threshold"
     fi
 
     local mem_info
@@ -205,8 +206,8 @@ lfa_check_memory() {
     free=$(echo "$mem_info" | awk '{print $4}')
     available=$(echo "$mem_info" | awk '{print $7}')
 
-    local pct=$(( used * 100 / total ))
-    local avail_pct=$(( available * 100 / total ))
+    local pct=$((used * 100 / total))
+    local avail_pct=$((available * 100 / total))
 
     local swap_info
     swap_info=$(free -b | grep "^Swap:")
@@ -216,27 +217,27 @@ lfa_check_memory() {
     swap_free=$(echo "$swap_info" | awk '{print $4}')
 
     local swap_pct=0
-    if (( swap_total > 0 )); then
-        swap_pct=$(( swap_used * 100 / swap_total ))
+    if ((swap_total > 0)); then
+        swap_pct=$((swap_used * 100 / swap_total))
     fi
 
     local status="ok"
-    if (( pct >= crit_threshold )); then
+    if ((pct >= crit_threshold)); then
         status="critical"
-    elif (( pct >= warn_threshold )); then
+    elif ((pct >= warn_threshold)); then
         status="warning"
     fi
 
     local results=("memory:$pct:$status:$used:$total:$available")
-    if (( swap_total > 0 )); then
+    if ((swap_total > 0)); then
         results+=("swap:$swap_pct:$status:$swap_used:$swap_total:$swap_free")
     fi
 
     lfa_output_check_results "memory" "$format" "$output" "${results[@]}"
 
-    if (( pct >= crit_threshold )); then
+    if ((pct >= crit_threshold)); then
         return 2
-    elif (( pct >= warn_threshold )); then
+    elif ((pct >= warn_threshold)); then
         return 1
     fi
     return 0
@@ -250,7 +251,7 @@ lfa_check_cpu() {
     local load_crit=4.0
 
     if [[ -n "$threshold" ]]; then
-        IFS=',' read -r load_warn load_crit <<< "$threshold"
+        IFS=',' read -r load_warn load_crit <<<"$threshold"
     fi
 
     local load_avg
@@ -266,9 +267,9 @@ lfa_check_cpu() {
     load_per_cpu=$(echo "scale=2; $load_1min / $cpu_count" | bc 2>/dev/null || echo "0")
 
     local status="ok"
-    if (( $(echo "$load_per_cpu > $load_crit" | bc -l 2>/dev/null || echo 0) )); then
+    if (($(echo "$load_per_cpu > $load_crit" | bc -l 2>/dev/null || echo 0))); then
         status="critical"
-    elif (( $(echo "$load_per_cpu > $load_warn" | bc -l 2>/dev/null || echo 0) )); then
+    elif (($(echo "$load_per_cpu > $load_warn" | bc -l 2>/dev/null || echo 0))); then
         status="warning"
     fi
 
@@ -276,9 +277,9 @@ lfa_check_cpu() {
 
     lfa_output_check_results "cpu" "$format" "$output" "${results[@]}"
 
-    if (( $(echo "$load_per_cpu > $load_crit" | bc -l 2>/dev/null || echo 0) )); then
+    if (($(echo "$load_per_cpu > $load_crit" | bc -l 2>/dev/null || echo 0))); then
         return 2
-    elif (( $(echo "$load_per_cpu > $load_warn" | bc -l 2>/dev/null || echo 0) )); then
+    elif (($(echo "$load_per_cpu > $load_warn" | bc -l 2>/dev/null || echo 0))); then
         return 1
     fi
     return 0
@@ -294,7 +295,7 @@ lfa_check_network() {
     local ping_timeout
     ping_timeout=$(lfa_get_config "check.network.ping_timeout" 5)
 
-    IFS=',' read -ra hosts <<< "$ping_hosts"
+    IFS=',' read -ra hosts <<<"$ping_hosts"
     for host in "${hosts[@]}"; do
         if lfa_ping_host "$host" 3 "$ping_timeout"; then
             results+=("ping:$host:ok")
@@ -306,7 +307,7 @@ lfa_check_network() {
     if lfa_check_command dig; then
         local dns_servers
         dns_servers=$(lfa_get_config "check.network.dns_servers" "8.8.8.8,1.1.1.1")
-        IFS=',' read -ra dns <<< "$dns_servers"
+        IFS=',' read -ra dns <<<"$dns_servers"
         for server in "${dns[@]}"; do
             if lfa_dns_lookup "google.com" A "$server" &>/dev/null; then
                 results+=("dns:$server:ok")
@@ -321,13 +322,13 @@ lfa_check_network() {
     local failed=0
     for r in "${results[@]}"; do
         if [[ "$r" == *:failed ]]; then
-            ((failed++))
+            ((failed += 1))
         fi
     done
 
-    if (( failed == ${#results[@]} )); then
+    if ((failed == ${#results[@]})); then
         return 2
-    elif (( failed > 0 )); then
+    elif ((failed > 0)); then
         return 1
     fi
     return 0
@@ -346,7 +347,7 @@ lfa_check_services() {
     local critical_services
     critical_services=$(lfa_get_config "check.services.critical_services" "sshd,systemd-resolved,systemd-networkd,cron")
 
-    IFS=',' read -ra services <<< "$critical_services"
+    IFS=',' read -ra services <<<"$critical_services"
     for service in "${services[@]}"; do
         local status
         status=$(lfa_service_status "$service" 2>/dev/null || echo "inactive")
@@ -368,11 +369,11 @@ lfa_check_services() {
     local failed=0
     for r in "${results[@]}"; do
         if [[ "$r" == *:failed:* ]] || [[ "$r" == *:inactive:* ]]; then
-            ((failed++))
+            ((failed += 1))
         fi
     done
 
-    if (( failed > 0 )); then
+    if ((failed > 0)); then
         return 2
     fi
     return 0
@@ -395,7 +396,7 @@ lfa_check_packages() {
             broken=$(dpkg -l | grep -c '^rc' || true)
             results+=("packages:config_remaining:$broken")
             ;;
-        dnf|yum)
+        dnf | yum)
             local updates
             updates=$($pm check-update 2>/dev/null | grep -c "^[^.]" || true)
             results+=("packages:updates:$updates")
@@ -436,9 +437,9 @@ lfa_check_logs() {
 
     lfa_output_check_results "logs" "$format" "$output" "${results[@]}"
 
-    if (( error_count > 100 )); then
+    if ((error_count > 100)); then
         return 2
-    elif (( error_count > 10 )); then
+    elif ((error_count > 10)); then
         return 1
     fi
     return 0
@@ -537,7 +538,7 @@ lfa_output_check_results() {
             json+='"results":['
             local first=true
             for result in "${results[@]}"; do
-                IFS=':' read -ra parts <<< "$result"
+                IFS=':' read -ra parts <<<"$result"
                 local name="${parts[0]}"
                 local value="${parts[1]}"
                 local status="${parts[2]}"
@@ -553,10 +554,10 @@ lfa_output_check_results() {
             json+="]}"
             echo "$json"
             ;;
-        text|*)
+        text | *)
             echo "=== $check_name check ==="
             for result in "${results[@]}"; do
-                IFS=':' read -ra parts <<< "$result"
+                IFS=':' read -ra parts <<<"$result"
                 local name="${parts[0]}"
                 local value="${parts[1]}"
                 local status="${parts[2]}"
@@ -571,6 +572,6 @@ lfa_output_check_results() {
     esac
 
     if [[ -n "$output" ]]; then
-        lfa_output_check_results "$check_name" "$format" "" "${results[@]}" > "$output"
+        lfa_output_check_results "$check_name" "$format" "" "${results[@]}" >"$output"
     fi
 }

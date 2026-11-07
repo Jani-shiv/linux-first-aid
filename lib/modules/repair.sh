@@ -44,6 +44,11 @@ EOF
 }
 
 lfa_repair() {
+    if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+        lfa_repair_usage
+        return 0
+    fi
+
     local dry_run=false
     local categories=()
     local force=false
@@ -57,7 +62,7 @@ lfa_repair() {
                 shift
                 ;;
             --category)
-                IFS=',' read -ra categories <<< "$2"
+                IFS=',' read -ra categories <<<"$2"
                 shift 2
                 ;;
             --list-categories)
@@ -76,7 +81,7 @@ lfa_repair() {
                 backup=false
                 shift
                 ;;
-            -h|--help)
+            -h | --help)
                 lfa_repair_usage
                 return 0
                 ;;
@@ -96,7 +101,7 @@ lfa_repair() {
     if [[ ${#categories[@]} -eq 0 ]]; then
         local config_categories
         config_categories=$(lfa_get_config "repair.categories")
-        IFS=',' read -ra categories <<< "$config_categories"
+        IFS=',' read -ra categories <<<"$config_categories"
     fi
 
     export LFA_DRY_RUN="$dry_run"
@@ -191,7 +196,7 @@ lfa_repair_packages() {
         apt)
             lfa_repair_apt
             ;;
-        dnf|yum)
+        dnf | yum)
             lfa_repair_dnf
             ;;
         pacman)
@@ -380,7 +385,7 @@ lfa_repair_permissions() {
         return 0
     fi
 
-    IFS=',' read -ra path_array <<< "$paths"
+    IFS=',' read -ra path_array <<<"$paths"
     for path in "${path_array[@]}"; do
         log_info "Checking permissions on: $path"
         local pm
@@ -392,7 +397,7 @@ lfa_repair_permissions() {
                     log_warn "Permission mismatch: $line"
                 done
                 ;;
-            rpm|dnf|yum)
+            rpm | dnf | yum)
                 rpm --verify 2>/dev/null | grep -E '^.{8}M' | head -20 | while read -r line; do
                     log_warn "Permission mismatch: $line"
                 done
@@ -487,7 +492,7 @@ lfa_repair_boot() {
             log_info "Updating initramfs..."
             update-initramfs -u -k all 2>/dev/null || true
             ;;
-        dnf|yum)
+        dnf | yum)
             log_info "Regenerating GRUB..."
             grub2-mkconfig -o /boot/grub2/grub.cfg 2>/dev/null || true
 

@@ -71,10 +71,10 @@ lfa_monitor() {
                 shift
                 ;;
             --categories)
-                IFS=',' read -ra categories <<< "$2"
+                IFS=',' read -ra categories <<<"$2"
                 shift 2
                 ;;
-            -h|--help)
+            -h | --help)
                 lfa_monitor_usage
                 return 0
                 ;;
@@ -89,7 +89,7 @@ lfa_monitor() {
     if [[ ${#categories[@]} -eq 0 ]]; then
         local config_categories
         config_categories=$(lfa_get_config "diagnose.categories")
-        IFS=',' read -ra categories <<< "$config_categories"
+        IFS=',' read -ra categories <<<"$config_categories"
     fi
 
     if [[ "$daemon" == "true" ]]; then
@@ -115,8 +115,8 @@ lfa_monitor_daemon() {
     log_info "Starting monitor daemon (interval: ${interval}s, threshold: $alert_threshold)"
 
     (
-        exec >> "$log_file" 2>&1
-        echo "$$" > "$pid_file"
+        exec >>"$log_file" 2>&1
+        echo "$$" >"$pid_file"
         trap 'rm -f "$pid_file"; exit 0' EXIT INT TERM
 
         while true; do
@@ -163,7 +163,7 @@ lfa_monitor_run_checks() {
 
     for category in "${categories[@]}"; do
         local result
-        if result=$(lfa_monitor_check_category "$category" "$alert_threshold"); then
+        if lfa_monitor_check_category "$category" "$alert_threshold"; then
             log_debug "$category: OK"
         else
             local level="$?"
@@ -218,17 +218,17 @@ lfa_monitor_check_disk() {
             local usage mount
             usage=$(echo "$line" | awk '{print $5}' | sed 's/%//')
             mount=$(echo "$line" | awk '{print $6}')
-            if [[ "$usage" =~ ^[0-9]+$ ]] && (( usage > max_usage )); then
+            if [[ "$usage" =~ ^[0-9]+$ ]] && ((usage > max_usage)); then
                 max_usage=$usage
                 max_mount=$mount
             fi
         fi
     done < <(df -h -x tmpfs -x devtmpfs -x squashfs)
 
-    if (( max_usage >= crit_threshold )); then
+    if ((max_usage >= crit_threshold)); then
         log_error "Disk critical: $max_mount at ${max_usage}%"
         return 2
-    elif (( max_usage >= warn_threshold )); then
+    elif ((max_usage >= warn_threshold)); then
         log_warn "Disk warning: $max_mount at ${max_usage}%"
         return 1
     fi
@@ -248,12 +248,12 @@ lfa_monitor_check_memory() {
     total=$(echo "$mem_info" | awk '{print $2}')
     used=$(echo "$mem_info" | awk '{print $3}')
 
-    local pct=$(( used * 100 / total ))
+    local pct=$((used * 100 / total))
 
-    if (( pct >= crit_threshold )); then
+    if ((pct >= crit_threshold)); then
         log_error "Memory critical: ${pct}% used"
         return 2
-    elif (( pct >= warn_threshold )); then
+    elif ((pct >= warn_threshold)); then
         log_warn "Memory warning: ${pct}% used"
         return 1
     fi
@@ -276,10 +276,10 @@ lfa_monitor_check_cpu() {
     local load_per_cpu
     load_per_cpu=$(echo "scale=2; $load_1min / $cpu_count" | bc 2>/dev/null || echo "0")
 
-    if (( $(echo "$load_per_cpu > $load_crit" | bc -l 2>/dev/null || echo 0) )); then
+    if (($(echo "$load_per_cpu > $load_crit" | bc -l 2>/dev/null || echo 0))); then
         log_error "CPU load critical: $load_per_cpu per CPU"
         return 2
-    elif (( $(echo "$load_per_cpu > $load_warn" | bc -l 2>/dev/null || echo 0) )); then
+    elif (($(echo "$load_per_cpu > $load_warn" | bc -l 2>/dev/null || echo 0))); then
         log_warn "CPU load warning: $load_per_cpu per CPU"
         return 1
     fi
@@ -293,19 +293,19 @@ lfa_monitor_check_network() {
     local ping_timeout
     ping_timeout=$(lfa_get_config "check.network.ping_timeout" 5)
 
-    IFS=',' read -ra hosts <<< "$ping_hosts"
+    IFS=',' read -ra hosts <<<"$ping_hosts"
     local failed=0
 
     for host in "${hosts[@]}"; do
         if ! lfa_ping_host "$host" 2 "$ping_timeout"; then
-            ((failed++))
+            ((failed += 1))
         fi
     done
 
-    if (( failed == ${#hosts[@]} )); then
+    if ((failed == ${#hosts[@]})); then
         log_error "Network critical: All ping targets unreachable"
         return 2
-    elif (( failed > 0 )); then
+    elif ((failed > 0)); then
         log_warn "Network warning: $failed/${#hosts[@]} ping targets unreachable"
         return 1
     fi
@@ -322,17 +322,17 @@ lfa_monitor_check_services() {
     fi
 
     local failed=0
-    IFS=',' read -ra services <<< "$critical_services"
+    IFS=',' read -ra services <<<"$critical_services"
     for service in "${services[@]}"; do
         local status
         status=$(lfa_service_status "$service" 2>/dev/null || echo "inactive")
         if [[ "$status" != "active" ]]; then
             log_error "Service critical: $service is $status"
-            ((failed++))
+            ((failed += 1))
         fi
     done
 
-    if (( failed > 0 )); then
+    if ((failed > 0)); then
         return 2
     fi
     return 0

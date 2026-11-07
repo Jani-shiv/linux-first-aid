@@ -8,14 +8,14 @@
 
 set -euo pipefail
 
-readonly LFA_LIB_DIR="${LFA_LIB_DIR:-/usr/share/linux-first-aid/lib}"
-readonly LFA_CONFIG_DIR="${LFA_CONFIG_DIR:-/etc/linux-first-aid}"
-readonly LFA_DATA_DIR="${LFA_DATA_DIR:-/var/lib/linux-first-aid}"
-readonly LFA_CACHE_DIR="${LFA_CACHE_DIR:-/var/cache/linux-first-aid}"
-readonly LFA_LOG_DIR="${LFA_LOG_DIR:-/var/log/linux-first-aid}"
+LFA_LIB_DIR="${LFA_LIB_DIR:-/usr/share/linux-first-aid/lib}"
+LFA_CONFIG_DIR="${LFA_CONFIG_DIR:-/etc/linux-first-aid}"
+LFA_DATA_DIR="${LFA_DATA_DIR:-/var/lib/linux-first-aid}"
+LFA_CACHE_DIR="${LFA_CACHE_DIR:-/var/cache/linux-first-aid}"
+LFA_LOG_DIR="${LFA_LOG_DIR:-/var/log/linux-first-aid}"
 
-readonly LFA_TEMP_DIR="$(mktemp -d -t lfa.XXXXXX)"
-readonly LFA_PID_FILE="${LFA_TEMP_DIR}/lfa.pid"
+LFA_TEMP_DIR="${LFA_TEMP_DIR:-$(mktemp -d -t lfa.XXXXXX)}"
+LFA_PID_FILE="${LFA_PID_FILE:-${LFA_TEMP_DIR}/lfa.pid}"
 
 trap 'lfa_cleanup' EXIT INT TERM
 
@@ -37,7 +37,9 @@ lfa_require_root() {
 lfa_check_command() {
     local cmd="$1"
     if ! command -v "$cmd" &>/dev/null; then
-        log_debug "Command not found: $cmd"
+        if declare -F log_debug >/dev/null; then
+            log_debug "Command not found: $cmd"
+        fi
         return 1
     fi
     return 0
@@ -109,7 +111,7 @@ lfa_human_readable() {
 
     while [[ $value -ge 1024 && $i -lt ${#units[@]} ]]; do
         value=$((value / 1024))
-        ((i++))
+        ((i += 1))
     done
     echo "${value}${units[$i]}"
 }
@@ -221,7 +223,7 @@ lfa_split_string() {
     local string="$1"
     local delimiter="${2:- }"
     local IFS="$delimiter"
-    read -ra arr <<< "$string"
+    read -ra arr <<<"$string"
     echo "${arr[@]}"
 }
 
@@ -229,6 +231,7 @@ lfa_in_array() {
     local needle="$1"
     shift
     local haystack=("$@")
+    local item
 
     for item in "${haystack[@]}"; do
         if [[ "$item" == "$needle" ]]; then
@@ -264,7 +267,7 @@ lfa_retry() {
         fi
         log_warn "Attempt $attempt/$max_attempts failed. Retrying in ${delay}s..."
         sleep "$delay"
-        ((attempt++))
+        ((attempt += 1))
     done
 
     log_error "All $max_attempts attempts failed"
@@ -293,16 +296,17 @@ lfa_generate_id() {
 lfa_lock() {
     local lock_file="$1"
     local timeout="${2:-30}"
-    local start_time=$(date +%s)
+    local start_time
+    start_time=$(date +%s)
 
     while ! mkdir "$lock_file" 2>/dev/null; do
-        if (( $(date +%s) - start_time > timeout )); then
+        if (($(date +%s) - start_time > timeout)); then
             log_error "Lock timeout: $lock_file"
             return 1
         fi
         sleep 0.1
     done
-    echo $$ > "$lock_file/pid"
+    echo $$ >"$lock_file/pid"
     return 0
 }
 

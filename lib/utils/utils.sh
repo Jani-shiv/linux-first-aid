@@ -23,7 +23,7 @@ lfa_write_file() {
     local mode="${3:-644}"
 
     mkdir -p "$(dirname "$file")"
-    echo "$content" > "$file"
+    echo "$content" >"$file"
     chmod "$mode" "$file"
 }
 
@@ -32,7 +32,7 @@ lfa_append_file() {
     local content="$2"
 
     mkdir -p "$(dirname "$file")"
-    echo "$content" >> "$file"
+    echo "$content" >>"$file"
 }
 
 lfa_backup_file() {
@@ -91,7 +91,7 @@ lfa_find_large_files() {
     local size="${2:-100M}"
     local count="${3:-20}"
 
-    find "$path" -type f -size +"$size" -exec ls -lh {} + 2>/dev/null | \
+    find "$path" -type f -size +"$size" -exec ls -lh {} + 2>/dev/null |
         sort -k5 -hr | head -n "$count"
 }
 
@@ -100,7 +100,7 @@ lfa_find_old_files() {
     local days="${2:-30}"
     local count="${3:-20}"
 
-    find "$path" -type f -mtime +"$days" -exec ls -lh {} + 2>/dev/null | \
+    find "$path" -type f -mtime +"$days" -exec ls -lh {} + 2>/dev/null |
         sort -k6,7 | head -n "$count"
 }
 
@@ -155,7 +155,7 @@ lfa_json_parse() {
     if lfa_check_command jq; then
         echo "$json" | jq -r "$key"
     elif lfa_check_command python3; then
-        python3 -c "import sys, json; print(json.load(sys.stdin).get('$key', ''))" <<< "$json"
+        python3 -c "import sys, json; print(json.load(sys.stdin).get('$key', ''))" <<<"$json"
     else
         log_error "No JSON parser available (jq or python3 required)"
         return 1
@@ -169,7 +169,7 @@ lfa_yaml_parse() {
     if lfa_check_command yq; then
         echo "$yaml" | yq -r "$key"
     elif lfa_check_command python3; then
-        python3 -c "import sys, yaml; print(yaml.safe_load(sys.stdin).get('$key', ''))" <<< "$yaml"
+        python3 -c "import sys, yaml; print(yaml.safe_load(sys.stdin).get('$key', ''))" <<<"$yaml"
     else
         log_error "No YAML parser available (yq or python3 required)"
         return 1
@@ -197,8 +197,10 @@ lfa_url_encode() {
         char="${string:i:1}"
         case "$char" in
             [a-zA-Z0-9.~_-]) encoded+="$char" ;;
-            *) printf -v char '%%%02X' "'$char"
-               encoded+="$char" ;;
+            *)
+                printf -v char '%%%02X' "'$char"
+                encoded+="$char"
+                ;;
         esac
     done
     echo "$encoded"
@@ -251,7 +253,7 @@ lfa_generate_password() {
     if lfa_check_command openssl; then
         openssl rand -base64 $((length * 3 / 2)) | tr -d '=+/' | cut -c1-"$length"
     elif lfa_check_command tr; then
-        tr -dc "$chars" < /dev/urandom | head -c "$length"
+        tr -dc "$chars" </dev/urandom | head -c "$length"
     else
         log_error "No random generator available"
         return 1
@@ -263,7 +265,7 @@ lfa_is_valid_ip() {
     local regex='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
 
     if [[ "$ip" =~ $regex ]]; then
-        IFS='.' read -ra octets <<< "$ip"
+        IFS='.' read -ra octets <<<"$ip"
         for octet in "${octets[@]}"; do
             if ((octet > 255)); then
                 return 1
@@ -279,7 +281,7 @@ lfa_is_valid_cidr() {
     local regex='^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[012])$'
 
     if [[ "$cidr" =~ $regex ]]; then
-        IFS='.' read -ra octets <<< "${BASH_REMATCH[1]}"
+        IFS='.' read -ra octets <<<"${BASH_REMATCH[1]}"
         for octet in "${octets[@]}"; do
             if ((octet > 255)); then
                 return 1
@@ -317,7 +319,7 @@ lfa_wait_for_port() {
     start_time=$(date +%s)
 
     while ! lfa_check_port "$host" "$port"; do
-        if (( $(date +%s) - start_time > timeout )); then
+        if (($(date +%s) - start_time > timeout)); then
             return 1
         fi
         sleep "$interval"
@@ -409,7 +411,7 @@ lfa_get_certificate_info() {
     local port="${2:-443}"
 
     if lfa_check_command openssl; then
-        echo | openssl s_client -connect "$host:$port" -servername "$host" 2>/dev/null | \
+        echo | openssl s_client -connect "$host:$port" -servername "$host" 2>/dev/null |
             openssl x509 -noout -text 2>/dev/null
     else
         log_error "openssl not available"
@@ -424,7 +426,7 @@ lfa_check_ssl_expiry() {
 
     if lfa_check_command openssl; then
         local expiry_date
-        expiry_date=$(echo | openssl s_client -connect "$host:$port" -servername "$host" 2>/dev/null | \
+        expiry_date=$(echo | openssl s_client -connect "$host:$port" -servername "$host" 2>/dev/null |
             openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
 
         if [[ -n "$expiry_date" ]]; then
@@ -432,12 +434,12 @@ lfa_check_ssl_expiry() {
             expiry_epoch=$(date -d "$expiry_date" +%s 2>/dev/null || date -j -f "%b %d %H:%M:%S %Y %Z" "$expiry_date" +%s 2>/dev/null)
             local now_epoch
             now_epoch=$(date +%s)
-            local days_left=$(( (expiry_epoch - now_epoch) / 86400 ))
+            local days_left=$(((expiry_epoch - now_epoch) / 86400))
 
-            if (( days_left < 0 )); then
+            if ((days_left < 0)); then
                 echo "expired"
                 return 2
-            elif (( days_left <= warning_days )); then
+            elif ((days_left <= warning_days)); then
                 echo "warning:$days_left"
                 return 1
             else
@@ -461,7 +463,7 @@ lfa_get_process_info() {
 lfa_get_process_cmdline() {
     local pid="$1"
     if [[ -f "/proc/$pid/cmdline" ]]; then
-        tr '\0' ' ' < "/proc/$pid/cmdline"
+        tr '\0' ' ' <"/proc/$pid/cmdline"
         echo
     else
         return 1
@@ -471,7 +473,7 @@ lfa_get_process_cmdline() {
 lfa_get_process_env() {
     local pid="$1"
     if [[ -f "/proc/$pid/environ" ]]; then
-        tr '\0' '\n' < "/proc/$pid/environ"
+        tr '\0' '\n' <"/proc/$pid/environ"
     else
         return 1
     fi

@@ -23,12 +23,12 @@ assert_equals() {
 
     if [[ "$expected" == "$actual" ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Expected: $expected"
         echo "    Actual:   $actual"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -38,11 +38,11 @@ assert_command_succeeds() {
 
     if eval "$cmd" >/dev/null 2>&1; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Command failed: $cmd"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 

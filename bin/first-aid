@@ -86,7 +86,7 @@ EXIT CODES:
     5   Permission denied
     6   Configuration error
 
-For more information, see: https://github.com/linux-first-aid/linux-first-aid
+For more information, see: https://github.com/Jani-shiv/linux-first-aid
 EOF
 }
 
@@ -104,23 +104,23 @@ main() {
 
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -h|--help)
+            -h | --help)
                 usage
                 exit 0
                 ;;
-            -v|--version)
+            -v | --version)
                 version
                 exit 0
                 ;;
-            -c|--config)
+            -c | --config)
                 config_file="$2"
                 shift 2
                 ;;
-            -q|--quiet)
+            -q | --quiet)
                 quiet=true
                 shift
                 ;;
-            -d|--debug)
+            -d | --debug)
                 debug=true
                 shift
                 ;;
@@ -128,7 +128,7 @@ main() {
                 no_color=true
                 shift
                 ;;
-            diagnose|repair|monitor|check|fix|analyze|report|config)
+            diagnose | repair | monitor | check | fix | analyze | report | config)
                 cmd="$1"
                 shift
                 break

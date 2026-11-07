@@ -8,10 +8,10 @@
 
 set -euo pipefail
 
-readonly LFA_DEFAULT_CONFIG_DIR="/etc/linux-first-aid"
-readonly LFA_USER_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/linux-first-aid"
-readonly LFA_DEFAULT_CONFIG_FILE="config.yaml"
-readonly LFA_CONFIG_FILE="${LFA_CONFIG_FILE:-$LFA_DEFAULT_CONFIG_DIR/$LFA_DEFAULT_CONFIG_FILE}"
+LFA_DEFAULT_CONFIG_DIR="/etc/linux-first-aid"
+LFA_USER_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/linux-first-aid"
+LFA_DEFAULT_CONFIG_FILE="config.yaml"
+LFA_CONFIG_FILE="${LFA_CONFIG_FILE:-$LFA_DEFAULT_CONFIG_DIR/$LFA_DEFAULT_CONFIG_FILE}"
 
 declare -A LFA_CONFIG=()
 
@@ -69,7 +69,7 @@ lfa_parse_config() {
                 LFA_CONFIG["$key"]="$value"
             fi
         fi
-    done < "$file"
+    done <"$file"
 }
 
 lfa_set_defaults() {
@@ -221,7 +221,7 @@ lfa_save_config() {
                 fi
             fi
         done
-    } > "$file"
+    } >"$file"
 
     log_info "Configuration saved to $file"
 }

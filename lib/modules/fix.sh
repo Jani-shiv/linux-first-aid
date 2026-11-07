@@ -50,8 +50,9 @@ lfa_fix() {
     local fix_name="${1:-}"
     shift || true
 
-    if [[ -z "$fix_name" ]]; then
+    if [[ "$fix_name" == "-h" || "$fix_name" == "--help" || -z "$fix_name" ]]; then
         lfa_fix_usage
+        [[ -n "$fix_name" ]] && return 0
         return 2
     fi
 
@@ -83,7 +84,7 @@ lfa_fix() {
                 paths="$2"
                 shift 2
                 ;;
-            -h|--help)
+            -h | --help)
                 lfa_fix_usage
                 return 0
                 ;;
@@ -155,7 +156,7 @@ lfa_fix_clean_package_cache() {
             apt autoclean
             apt clean
             ;;
-        dnf|yum)
+        dnf | yum)
             log_info "Cleaning dnf/yum cache..."
             $pm clean all
             ;;
@@ -201,11 +202,14 @@ lfa_fix_broken_packages() {
             log_info "Configuring pending packages..."
             dpkg --configure -a
             ;;
-        dnf|yum)
+        dnf | yum)
             log_info "Checking for broken packages..."
             $pm check || true
             log_info "Reinstalling broken packages..."
-            $pm reinstall -y $(rpm -Va 2>/dev/null | grep '^..5' | awk '{print $NF}' | sort -u) 2>/dev/null || true
+            mapfile -t changed_packages < <(rpm -Va 2>/dev/null | awk '$1 ~ /^..5/ {print $NF}' | sort -u)
+            if [[ ${#changed_packages[@]} -gt 0 ]]; then
+                lfa_exec_safe "$pm" reinstall -y "${changed_packages[@]}"
+            fi
             ;;
         pacman)
             log_info "Checking package database..."
@@ -322,14 +326,14 @@ lfa_fix_permissions() {
         return 0
     fi
 
-    IFS=',' read -ra path_array <<< "$paths"
+    IFS=',' read -ra path_array <<<"$paths"
     for path in "${path_array[@]}"; do
         log_info "Checking: $path"
         local pm
         pm=$(lfa_get_package_manager)
 
         case "$pm" in
-            rpm|dnf|yum)
+            rpm | dnf | yum)
                 rpm --setperms "$path" 2>/dev/null || true
                 ;;
             apt)
@@ -371,7 +375,7 @@ lfa_fix_rebuild_initramfs() {
         apt)
             update-initramfs -u -k all 2>/dev/null || true
             ;;
-        dnf|yum)
+        dnf | yum)
             dracut --force 2>/dev/null || true
             ;;
         pacman)
@@ -400,7 +404,7 @@ lfa_fix_update_grub() {
         apt)
             update-grub 2>/dev/null || grub2-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
             ;;
-        dnf|yum)
+        dnf | yum)
             grub2-mkconfig -o /boot/grub2/grub.cfg 2>/dev/null || true
             ;;
         pacman)
