@@ -1,0 +1,40 @@
+# Maintainer: linux-first-aid contributors <maintainers@linux-first-aid.io>
+pkgname=linux-first-aid
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Linux troubleshooting toolkit"
+arch=('any')
+url="https://github.com/linux-first-aid/linux-first-aid"
+license=('MIT')
+depends=('bash>=4.0' 'coreutils' 'procps-ng' 'iproute2' 'systemd' 'util-linux' 'findutils' 'grep' 'sed' 'gawk' 'bc' 'jq')
+optdepends=('smartmontools: disk health checks'
+            'lsof: open file analysis'
+            'sysstat: performance analysis'
+            'iotop: I/O monitoring'
+            'htop: process monitoring'
+            'ncurses: terminal UI'
+            'openssl: certificate analysis'
+            'curl: network checks')
+source=("${pkgname}-${pkgver}.tar.gz::https://github.com/linux-first-aid/linux-first-aid/releases/download/v${pkgver}/linux-first-aid-${pkgver}.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+    cd "${pkgname}-${pkgver}"
+
+    install -Dm755 bin/first-aid "${pkgdir}/usr/bin/first-aid"
+
+    install -dm755 "${pkgdir}/usr/share/${pkgname}/core"
+    install -m644 lib/core/*.sh "${pkgdir}/usr/share/${pkgname}/core/"
+
+    install -dm755 "${pkgdir}/usr/share/${pkgname}/modules"
+    install -m644 lib/modules/*.sh "${pkgdir}/usr/share/${pkgname}/modules/"
+
+    install -dm755 "${pkgdir}/usr/share/${pkgname}/utils"
+    install -m644 lib/utils/*.sh "${pkgdir}/usr/share/${pkgname}/utils/"
+
+    install -dm755 "${pkgdir}/etc/${pkgname}"
+    install -m644 config/config.yaml "${pkgdir}/etc/${pkgname}/"
+
+    install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

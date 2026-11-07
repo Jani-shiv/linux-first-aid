@@ -1,0 +1,20 @@
+# debian/control
+Source: linux-first-aid
+Section: admin
+Priority: optional
+Maintainer: linux-first-aid contributors <maintainers@linux-first-aid.io>
+Build-Depends: debhelper-compat (= 13), bash, coreutils, procps, iproute2, systemd, util-linux, findutils, grep, sed, gawk, bc, jq
+Standards-Version: 4.6.2
+Homepage: https://github.com/linux-first-aid/linux-first-aid
+Vcs-Git: https://github.com/linux-first-aid/linux-first-aid.git
+Vcs-Browser: https://github.com/linux-first-aid/linux-first-aid
+
+Package: linux-first-aid
+Architecture: all
+Depends: ${misc:Depends}, bash (>= 4.0), coreutils, procps, iproute2, systemd, util-linux, findutils, grep, sed, gawk, bc, jq
+Recommends: smartmontools, lsof, sysstat, iotop, htop, ncurses-bin, openssl, curl
+Description: Linux troubleshooting toolkit
+ linux-first-aid is a comprehensive Linux troubleshooting toolkit for system
+ administrators and DevOps engineers. It provides commands to diagnose, repair,
+ and monitor Linux systems including disk, memory, CPU, network, services,
+ packages, logs, security, kernel, and boot diagnostics.
