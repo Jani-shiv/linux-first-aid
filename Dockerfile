@@ -49,7 +49,6 @@ RUN apk add --no-cache \
     openssl \
     smartmontools \
     lsof \
-    systemd \
     sysstat
 
 # Create non-root user

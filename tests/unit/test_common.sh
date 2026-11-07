@@ -20,12 +20,12 @@ assert_equals() {
 
     if [[ "$expected" == "$actual" ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Expected: $expected"
         echo "    Actual:   $actual"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -36,12 +36,12 @@ assert_not_equals() {
 
     if [[ "$expected" != "$actual" ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Expected not: $expected"
         echo "    Actual:       $actual"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -52,12 +52,12 @@ assert_contains() {
 
     if [[ "$haystack" == *"$needle"* ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Haystack: $haystack"
         echo "    Needle:   $needle"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -67,11 +67,11 @@ assert_command_succeeds() {
 
     if eval "$cmd" >/dev/null 2>&1; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Command failed: $cmd"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -81,18 +81,17 @@ assert_command_fails() {
 
     if ! eval "$cmd" >/dev/null 2>&1; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Command succeeded (expected failure): $cmd"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
 # Tests
 test_lfa_human_readable() {
     echo "Testing lfa_human_readable..."
-    assert_equals "1024B" "$(lfa_human_readable 1024)"
     assert_equals "1K" "$(lfa_human_readable 1024)"
     assert_equals "1M" "$(lfa_human_readable 1048576)"
     assert_equals "1G" "$(lfa_human_readable 1073741824)"

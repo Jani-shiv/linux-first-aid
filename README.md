@@ -2,9 +2,22 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen.svg)](https://www.shellcheck.net/)
-[![Build Status](https://github.com/linux-first-aid/linux-first-aid/workflows/CI/badge.svg)](https://github.com/linux-first-aid/linux-first-aid/actions)
+[![Build Status](https://github.com/Jani-shiv/linux-first-aid/workflows/CI/badge.svg)](https://github.com/Jani-shiv/linux-first-aid/actions)
 
-A comprehensive Linux troubleshooting toolkit for system administrators and DevOps engineers. Diagnose, repair, and monitor Linux systems with a single, powerful CLI tool.
+A Bash-based Linux troubleshooting toolkit for system administrators and DevOps engineers. Diagnose, repair, and monitor a host with one CLI, while keeping every action visible and repair operations opt-in.
+
+> **Safety first:** Run diagnosis and `--dry-run` before making changes. Repair commands can modify packages, services, networking, permissions, journals, and storage. Review the output and keep a current backup before using them on production systems.
+
+## What it does
+
+| Area | Examples |
+| --- | --- |
+| Diagnose | Disk, memory, CPU, network, services, packages, logs, security, kernel, and boot |
+| Repair | Package recovery, network reset, journal cleanup, SSD trim, and permissions |
+| Observe | One-shot checks, continuous monitoring, and machine-readable reports |
+| Integrate | JSON/HTML/Markdown reports, cron, systemd, CI, and Docker |
+
+The project is intentionally a shell toolkit: it uses the host's standard Linux utilities and does not replace distro-native package or service managers.
 
 ## Features
 
@@ -14,17 +27,23 @@ A comprehensive Linux troubleshooting toolkit for system administrators and DevO
 - **Log Analysis** - Analyze system logs, performance, startup, crashes, and security events
 - **Health Reports** - Generate detailed reports in text, JSON, HTML, or Markdown
 - **Multi-Distro Support** - Works on Debian/Ubuntu, RHEL/Fedora, Arch, openSUSE, Alpine, and more
-- **Zero Dependencies** - Pure Bash with only standard Linux utilities
+- **Small Footprint** - Pure Bash with distro-provided utilities; no runtime framework
 - **Configurable** - YAML-based configuration with user and system-level overrides
 
 ## Quick Start
 
 ```bash
 # Install from release
-curl -sSL https://github.com/linux-first-aid/linux-first-aid/releases/latest/download/install.sh | sudo bash
+curl -sSL https://github.com/Jani-shiv/linux-first-aid/releases/latest/download/install.sh | sudo bash
 
-# Or install manually
+# Or install from a checkout
+git clone https://github.com/Jani-shiv/linux-first-aid.git
+cd linux-first-aid
+sudo make install
+
+# Or copy an existing checkout manually
 sudo cp bin/first-aid /usr/local/bin/
+sudo mkdir -p /usr/share/linux-first-aid /etc/linux-first-aid
 sudo cp -r lib /usr/share/linux-first-aid/
 sudo cp config/config.yaml /etc/linux-first-aid/
 
@@ -43,6 +62,16 @@ first-aid monitor --interval 30 --alert-threshold warn
 
 # Generate HTML report
 first-aid report --format html --output health-report.html
+```
+
+### Try it with Docker
+
+The image is useful for checking the CLI and generating help output. Host-level checks that need the host namespace, devices, or systemd will be limited inside a regular container.
+
+```bash
+docker build -t linux-first-aid .
+docker run --rm linux-first-aid --version
+docker run --rm linux-first-aid --help
 ```
 
 ## Installation
@@ -67,23 +96,12 @@ first-aid report --format html --output health-report.html
 ### From Source
 
 ```bash
-git clone https://github.com/linux-first-aid/linux-first-aid.git
+git clone https://github.com/Jani-shiv/linux-first-aid.git
 cd linux-first-aid
 sudo make install
 ```
 
-### Package Managers
-
-```bash
-# Arch Linux (AUR)
-yay -S linux-first-aid
-
-# NixOS
-nix-env -iA nixpkgs.linux-first-aid
-
-# Homebrew (Linux)
-brew install linux-first-aid
-```
+The project currently publishes release archives and an installer script rather than distro packages. Package-manager integrations listed in the roadmap are not installation methods yet.
 
 ## Usage
 
@@ -267,9 +285,11 @@ first-aid config reset
 
 ## Configuration
 
-Configuration is loaded from (in order of precedence):
+Configuration is loaded in this order; later values override earlier values:
 1. `/etc/linux-first-aid/config.yaml` (system-wide)
 2. `~/.config/linux-first-aid/config.yaml` (user)
+
+The CLI also accepts `--config FILE` for a one-off configuration file. Use `first-aid config list` to inspect the effective values.
 
 ```yaml
 general:
@@ -359,14 +379,14 @@ WantedBy=multi-user.target
 ### Development Setup
 
 ```bash
-git clone https://github.com/linux-first-aid/linux-first-aid.git
+git clone https://github.com/Jani-shiv/linux-first-aid.git
 cd linux-first-aid
 make dev-setup
 ```
 
 ### Code Style
 
-- ShellCheck clean (no warnings)
+- ShellCheck clean (no errors)
 - 4-space indentation
 - Functions prefixed with `lfa_`
 - Variables prefixed with `LFA_`
@@ -388,6 +408,8 @@ sudo make test-integration
 # Run specific test
 ./tests/unit/test_common.sh
 ```
+
+The CI checks shell syntax and ShellCheck errors, shfmt formatting, unit and integration tests, Markdown, Docker image startup, and filesystem vulnerabilities. To run the same checks locally, install Bash, ShellCheck, shfmt, Bats, jq, and bc, then use the Make targets above.
 
 ## Roadmap
 
@@ -413,8 +435,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 ## Support
 
 - **Documentation**: [docs.linux-first-aid.io](https://docs.linux-first-aid.io)
-- **Issues**: [GitHub Issues](https://github.com/linux-first-aid/linux-first-aid/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/linux-first-aid/linux-first-aid/discussions)
+- **Issues**: [GitHub Issues](https://github.com/Jani-shiv/linux-first-aid/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Jani-shiv/linux-first-aid/discussions)
 - **Security**: [Security Policy](SECURITY.md)
 
 ---

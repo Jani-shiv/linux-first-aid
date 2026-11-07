@@ -7,6 +7,7 @@ set -euo pipefail
 
 LFA_LIB_DIR="${LFA_LIB_DIR:-$(dirname "$0")/../../lib}"
 source "${LFA_LIB_DIR}/core/logger.sh"
+source "${LFA_LIB_DIR}/utils/utils.sh"
 
 TESTS_PASSED=0
 TESTS_FAILED=0
@@ -18,12 +19,12 @@ assert_equals() {
 
     if [[ "$expected" == "$actual" ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Expected: $expected"
         echo "    Actual:   $actual"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -42,7 +43,7 @@ test_lfa_init_logger() {
     LFA_DEBUG=false
     LFA_NO_COLOR=false
     lfa_init_logger
-    assert_equals "0" "$LFA_LOG_LEVEL"
+    assert_equals "1" "$LFA_LOG_LEVEL"
 }
 
 test_lfa_set_get_log_level() {

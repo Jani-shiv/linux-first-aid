@@ -6,6 +6,8 @@
 set -euo pipefail
 
 LFA_LIB_DIR="${LFA_LIB_DIR:-$(dirname "$0")/../../lib}"
+source "${LFA_LIB_DIR}/core/common.sh"
+source "${LFA_LIB_DIR}/core/logger.sh"
 source "${LFA_LIB_DIR}/utils/utils.sh"
 
 TESTS_PASSED=0
@@ -18,12 +20,12 @@ assert_equals() {
 
     if [[ "$expected" == "$actual" ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Expected: $expected"
         echo "    Actual:   $actual"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -34,12 +36,12 @@ assert_contains() {
 
     if [[ "$haystack" == *"$needle"* ]]; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Haystack: $haystack"
         echo "    Needle:   $needle"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -49,11 +51,25 @@ assert_command_succeeds() {
 
     if eval "$cmd" >/dev/null 2>&1; then
         echo "  ✓ $message"
-        ((TESTS_PASSED++))
+        ((TESTS_PASSED += 1))
     else
         echo "  ✗ $message"
         echo "    Command failed: $cmd"
-        ((TESTS_FAILED++))
+        ((TESTS_FAILED += 1))
+    fi
+}
+
+assert_command_fails() {
+    local cmd="$1"
+    local message="${2:-}"
+
+    if ! eval "$cmd" >/dev/null 2>&1; then
+        echo "  ✓ $message"
+        ((TESTS_PASSED += 1))
+    else
+        echo "  ✗ $message"
+        echo "    Command succeeded: $cmd"
+        ((TESTS_FAILED += 1))
     fi
 }
 
@@ -147,12 +163,12 @@ test_lfa_backup_restore_file() {
     local content="original"
     local new_content="modified"
 
-    echo "$content" > "$test_file"
+    echo "$content" >"$test_file"
     local backup
     backup=$(lfa_backup_file "$test_file" "$backup_dir")
     assert_command_succeeds "test -f $backup" "backup created"
 
-    echo "$new_content" > "$test_file"
+    echo "$new_content" >"$test_file"
     lfa_restore_file "$test_file" "$backup"
     assert_equals "$content" "$(cat "$test_file")"
 

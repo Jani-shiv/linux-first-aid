@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-readonly REPO="linux-first-aid/linux-first-aid"
+readonly REPO="Jani-shiv/linux-first-aid"
 readonly INSTALL_DIR="/usr/local/bin"
 readonly LIB_DIR="/usr/share/linux-first-aid"
 readonly CONFIG_DIR="/etc/linux-first-aid"

@@ -71,7 +71,7 @@ lfa_diagnose() {
                 shift
                 ;;
             --category)
-                IFS=',' read -ra categories <<< "$2"
+                IFS=',' read -ra categories <<<"$2"
                 shift 2
                 ;;
             --list-categories)
@@ -90,7 +90,7 @@ lfa_diagnose() {
                 format="$2"
                 shift 2
                 ;;
-            -h|--help)
+            -h | --help)
                 lfa_diagnose_usage
                 return 0
                 ;;
@@ -110,7 +110,7 @@ lfa_diagnose() {
     if [[ ${#categories[@]} -eq 0 ]]; then
         local config_categories
         config_categories=$(lfa_get_config "diagnose.categories")
-        IFS=',' read -ra categories <<< "$config_categories"
+        IFS=',' read -ra categories <<<"$config_categories"
     fi
 
     log_section "System Diagnosis Starting"
@@ -308,16 +308,16 @@ lfa_diagnose_memory() {
         local swap_total swap_free
         swap_total=$(grep "SwapTotal:" /proc/meminfo | awk '{print $2}')
         swap_free=$(grep "SwapFree:" /proc/meminfo | awk '{print $2}')
-        if (( swap_total > 0 )); then
-            swap_used_pct=$(( (swap_total - swap_free) * 100 / swap_total ))
+        if ((swap_total > 0)); then
+            swap_used_pct=$(((swap_total - swap_free) * 100 / swap_total))
         fi
     fi
     log_kv "Swap Used" "${swap_used_pct}%"
 
-    if (( swap_used_pct >= swap_crit )); then
+    if ((swap_used_pct >= swap_crit)); then
         log_error "Critical: Swap usage at ${swap_used_pct}%"
         return 1
-    elif (( swap_used_pct >= swap_warn )); then
+    elif ((swap_used_pct >= swap_warn)); then
         log_warn "Warning: Swap usage at ${swap_used_pct}%"
     fi
 
@@ -355,10 +355,10 @@ lfa_diagnose_cpu() {
 
     log_kv "Load per CPU" "$load_per_cpu"
 
-    if (( $(echo "$load_per_cpu > $load_crit" | bc -l 2>/dev/null || echo 0) )); then
+    if (($(echo "$load_per_cpu > $load_crit" | bc -l 2>/dev/null || echo 0))); then
         log_error "Critical: Load per CPU ($load_per_cpu) exceeds critical threshold ($load_crit)"
         return 1
-    elif (( $(echo "$load_per_cpu > $load_warn" | bc -l 2>/dev/null || echo 0) )); then
+    elif (($(echo "$load_per_cpu > $load_warn" | bc -l 2>/dev/null || echo 0))); then
         log_warn "Warning: Load per CPU ($load_per_cpu) exceeds warning threshold ($load_warn)"
     fi
 
@@ -416,7 +416,7 @@ lfa_diagnose_network() {
     fi
 
     log_subsection "Connectivity Tests"
-    IFS=',' read -ra hosts <<< "$ping_hosts"
+    IFS=',' read -ra hosts <<<"$ping_hosts"
     for host in "${hosts[@]}"; do
         if lfa_ping_host "$host" 3 "$ping_timeout"; then
             log_success "Ping $host: OK"
@@ -427,7 +427,7 @@ lfa_diagnose_network() {
 
     if [[ "$check_dns" == "true" ]]; then
         log_subsection "DNS Resolution"
-        IFS=',' read -ra dns <<< "$dns_servers"
+        IFS=',' read -ra dns <<<"$dns_servers"
         for server in "${dns[@]}"; do
             if lfa_dns_lookup "google.com" A "$server" &>/dev/null; then
                 log_success "DNS $server: OK"
@@ -474,7 +474,7 @@ lfa_diagnose_services() {
     fi
 
     log_subsection "Critical Services"
-    IFS=',' read -ra services <<< "$critical_services"
+    IFS=',' read -ra services <<<"$critical_services"
     for service in "${services[@]}"; do
         local status
         status=$(lfa_service_status "$service" 2>/dev/null || echo "inactive")
@@ -542,7 +542,7 @@ lfa_diagnose_packages() {
             fi
             ;;
 
-        dnf|yum)
+        dnf | yum)
             log_subsection "DNF/YUM Package Status"
             if [[ "$check_updates" == "true" ]]; then
                 log_info "Checking for updates..."
@@ -803,9 +803,9 @@ lfa_write_diagnose_report() {
                 echo ""
                 echo "  }"
                 echo "}"
-            } > "$output"
+            } >"$output"
             ;;
-        text|*)
+        text | *)
             {
                 echo "linux-first-aid Diagnosis Report"
                 echo "Generated: $(lfa_timestamp)"
@@ -817,7 +817,7 @@ lfa_write_diagnose_report() {
                     local status="${result#*:}"
                     printf "  %-15s %s\n" "$category:" "$status"
                 done
-            } > "$output"
+            } >"$output"
             ;;
     esac
 }

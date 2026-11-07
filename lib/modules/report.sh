@@ -76,7 +76,7 @@ lfa_report() {
                 template="$2"
                 shift 2
                 ;;
-            -h|--help)
+            -h | --help)
                 lfa_report_usage
                 return 0
                 ;;
@@ -88,16 +88,25 @@ lfa_report() {
         esac
     done
 
+    if [[ -n "$template" ]]; then
+        if [[ ! -f "$template" ]]; then
+            log_error "Template file not found: $template"
+            return 1
+        fi
+        log_warn "Custom templates are not supported yet; using the built-in template"
+    fi
+
     local sections=("system" "disk" "memory" "cpu" "network" "services" "packages" "logs" "security" "kernel" "boot")
 
     if [[ -n "$include_sections" ]]; then
-        IFS=',' read -ra sections <<< "$include_sections"
+        IFS=',' read -ra sections <<<"$include_sections"
     fi
 
     if [[ -n "$exclude_sections" ]]; then
         local new_sections=()
         for section in "${sections[@]}"; do
-            if ! lfa_in_array "$section" $(echo "$exclude_sections" | tr ',' ' '); then
+            IFS=',' read -ra excluded <<<"$exclude_sections"
+            if ! lfa_in_array "$section" "${excluded[@]}"; then
                 new_sections+=("$section")
             fi
         done
@@ -119,16 +128,16 @@ lfa_report() {
         html)
             report_output=$(lfa_format_report_html "$report_data")
             ;;
-        markdown|md)
+        markdown | md)
             report_output=$(lfa_format_report_markdown "$report_data")
             ;;
-        text|*)
+        text | *)
             report_output=$(lfa_format_report_text "$report_data")
             ;;
     esac
 
     if [[ -n "$output" ]]; then
-        echo "$report_output" > "$output"
+        echo "$report_output" >"$output"
         log_success "Report written to: $output"
     else
         echo "$report_output"
@@ -177,7 +186,7 @@ lfa_generate_report_data() {
         esac
     done
 
-    echo "$(lfa_join_array "|" "${data[@]}")"
+    lfa_join_array "|" "${data[@]}"
 }
 
 lfa_collect_system_info() {
@@ -188,10 +197,10 @@ lfa_collect_system_info() {
     info+=("arch=$(lfa_get_arch)")
     info+=("init=$(lfa_get_init_system)")
     info+=("container=$(lfa_is_container && echo true || echo false)")
-    info+=("uptime=$(lfa_format_elapsed $(awk '{print int($1)}' /proc/uptime))")
+    info+=("uptime=$(lfa_format_elapsed "$(awk '{print int($1)}' /proc/uptime)")")
     info+=("load=$(lfa_get_load_average)")
     info+=("processes=$(lfa_get_process_count)")
-    echo "$(lfa_join_array ";" "${info[@]}")"
+    lfa_join_array ";" "${info[@]}"
 }
 
 lfa_collect_disk_info() {
@@ -206,7 +215,7 @@ lfa_collect_disk_info() {
             info+=("$mount:$fs:$usage:$avail")
         fi
     done < <(df -h -x tmpfs -x devtmpfs -x squashfs)
-    echo "$(lfa_join_array "," "${info[@]}")"
+    lfa_join_array "," "${info[@]}"
 }
 
 lfa_collect_memory_info() {
@@ -217,7 +226,7 @@ lfa_collect_memory_info() {
     used=$(echo "$mem_info" | awk '{print $3}')
     free=$(echo "$mem_info" | awk '{print $4}')
     available=$(echo "$mem_info" | awk '{print $7}')
-    local pct=$(( used * 100 / total ))
+    local pct=$((used * 100 / total))
 
     local swap_info
     swap_info=$(free -b | grep "^Swap:")
@@ -226,8 +235,8 @@ lfa_collect_memory_info() {
     swap_used=$(echo "$swap_info" | awk '{print $3}')
     swap_free=$(echo "$swap_info" | awk '{print $4}')
     local swap_pct=0
-    if (( swap_total > 0 )); then
-        swap_pct=$(( swap_used * 100 / swap_total ))
+    if ((swap_total > 0)); then
+        swap_pct=$((swap_used * 100 / swap_total))
     fi
 
     echo "total=$total;used=$used;free=$free;available=$available;pct=$pct;swap_total=$swap_total;swap_used=$swap_used;swap_free=$swap_free;swap_pct=$swap_pct"
@@ -256,7 +265,7 @@ lfa_collect_network_info() {
     local ping_timeout
     ping_timeout=$(lfa_get_config "check.network.ping_timeout" 5)
 
-    IFS=',' read -ra hosts <<< "$ping_hosts"
+    IFS=',' read -ra hosts <<<"$ping_hosts"
     for host in "${hosts[@]}"; do
         if lfa_ping_host "$host" 3 "$ping_timeout"; then
             info+=("ping:$host:ok")
@@ -280,7 +289,7 @@ lfa_collect_services_info() {
     local critical_services
     critical_services=$(lfa_get_config "check.services.critical_services" "sshd,systemd-resolved,systemd-networkd,cron")
 
-    IFS=',' read -ra services <<< "$critical_services"
+    IFS=',' read -ra services <<<"$critical_services"
     for service in "${services[@]}"; do
         local status
         status=$(lfa_service_status "$service" 2>/dev/null || echo "inactive")
@@ -309,7 +318,7 @@ lfa_collect_packages_info() {
             upgradable=$(apt list --upgradable 2>/dev/null | tail -n +2 | wc -l)
             info+=("upgradable=$upgradable")
             ;;
-        dnf|yum)
+        dnf | yum)
             local updates
             updates=$($pm check-update 2>/dev/null | grep -c "^[^.]" || true)
             info+=("updates=$updates")
@@ -405,9 +414,9 @@ lfa_format_report_text() {
     output+="Hostname: $(hostname)\n"
     output+="\n"
 
-    IFS='|' read -ra sections <<< "$data"
+    IFS='|' read -ra sections <<<"$data"
     for section_data in "${sections[@]}"; do
-        IFS=':' read -r section content <<< "$section_data"
+        IFS=':' read -r section content <<<"$section_data"
         output+="--- ${section^^} ---\n"
         output+=$(lfa_format_section_text "$section" "$content")
         output+="\n"
@@ -423,26 +432,26 @@ lfa_format_section_text() {
 
     case "$section" in
         system)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 output+="  $(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g'): $value\n"
             done
             ;;
         disk)
-            IFS=',' read -ra items <<< "$content"
+            IFS=',' read -ra items <<<"$content"
             output+="  Filesystem          Mount Point     Usage  Available\n"
             for item in "${items[@]}"; do
-                IFS=':' read -r mount fs usage avail <<< "$item"
+                IFS=':' read -r mount fs usage avail <<<"$item"
                 output+="  $(printf "%-18s %-15s %-6s %s\n" "$fs" "$mount" "$usage" "$avail")"
             done
             ;;
         memory)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 case "$key" in
-                    total|used|free|available|swap_total|swap_used|swap_free)
+                    total | used | free | available | swap_total | swap_used | swap_free)
                         value=$(lfa_human_readable "$value")
                         ;;
                 esac
@@ -450,28 +459,28 @@ lfa_format_section_text() {
             done
             ;;
         cpu)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 output+="  $(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g'): $value\n"
             done
             ;;
         network)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 if [[ "$key" == "ping" ]]; then
                     output+="  Ping Tests:\n"
-                    IFS=',' read -ra pings <<< "$value"
+                    IFS=',' read -ra pings <<<"$value"
                     for ping in "${pings[@]}"; do
-                        IFS=':' read -r _ host status <<< "$ping"
+                        IFS=':' read -r _ host status <<<"$ping"
                         output+="    $host: $status\n"
                     done
                 else
                     output+="  Interfaces:\n"
-                    IFS=',' read -ra ifaces <<< "$value"
+                    IFS=',' read -ra ifaces <<<"$value"
                     for iface in "${ifaces[@]}"; do
-                        IFS=':' read -r name state ip <<< "$iface"
+                        IFS=':' read -r name state ip <<<"$iface"
                         output+="    $name: $state $ip\n"
                     done
                 fi
@@ -481,9 +490,9 @@ lfa_format_section_text() {
             if [[ "$content" == "init_not_systemd=true" ]]; then
                 output+="  Not using systemd\n"
             else
-                IFS=';' read -ra items <<< "$content"
+                IFS=';' read -ra items <<<"$content"
                 for item in "${items[@]}"; do
-                    IFS=':' read -r name status enabled <<< "$item"
+                    IFS=':' read -r name status enabled <<<"$item"
                     if [[ "$name" == "failed" ]]; then
                         output+="  Failed Services: $status\n"
                     else
@@ -493,37 +502,37 @@ lfa_format_section_text() {
             fi
             ;;
         packages)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 output+="  $(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g'): $value\n"
             done
             ;;
         logs)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 output+="  $(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g'): $value\n"
             done
             ;;
         security)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 output+="  $(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g'): $value\n"
             done
             ;;
         kernel)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 output+="  $(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g'): $value\n"
             done
             ;;
         boot)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 output+="  $(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g'): $value\n"
             done
             ;;
@@ -539,10 +548,10 @@ lfa_format_report_json() {
     json+='"hostname":"'$(hostname)'",'
     json+='"sections":{'
 
-    IFS='|' read -ra sections <<< "$data"
+    IFS='|' read -ra sections <<<"$data"
     local first=true
     for section_data in "${sections[@]}"; do
-        IFS=':' read -r section content <<< "$section_data"
+        IFS=':' read -r section content <<<"$section_data"
         if [[ "$first" == "true" ]]; then
             first=false
         else
@@ -582,9 +591,9 @@ lfa_format_report_html() {
     <h1>Linux First Aid - System Health Report</h1>
     <p class=\"timestamp\">Generated: $(lfa_timestamp) | Hostname: $(hostname)</p>"
 
-    IFS='|' read -ra sections <<< "$data"
+    IFS='|' read -ra sections <<<"$data"
     for section_data in "${sections[@]}"; do
-        IFS=':' read -r section content <<< "$section_data"
+        IFS=':' read -r section content <<<"$section_data"
         html+="<div class=\"section\"><h2>${section^^}</h2>"
         html+=$(lfa_format_section_html "$section" "$content")
         html+="</div>"
@@ -600,11 +609,11 @@ lfa_format_section_html() {
     local html=""
 
     case "$section" in
-        system|memory|cpu|packages|logs|security|kernel|boot)
+        system | memory | cpu | packages | logs | security | kernel | boot)
             html+="<table><tr><th>Property</th><th>Value</th></tr>"
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 local display_key
                 display_key=$(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g')
                 if [[ "$key" =~ ^(total|used|free|available|swap_total|swap_used|swap_free)$ ]]; then
@@ -616,15 +625,15 @@ lfa_format_section_html() {
             ;;
         disk)
             html+="<table><tr><th>Filesystem</th><th>Mount Point</th><th>Usage</th><th>Available</th></tr>"
-            IFS=',' read -ra items <<< "$content"
+            IFS=',' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS=':' read -r mount fs usage avail <<< "$item"
+                IFS=':' read -r mount fs usage avail <<<"$item"
                 local usage_class="ok"
                 local usage_num
                 usage_num=$(echo "$usage" | sed 's/%//')
-                if (( usage_num >= 90 )); then
+                if ((usage_num >= 90)); then
                     usage_class="crit"
-                elif (( usage_num >= 80 )); then
+                elif ((usage_num >= 80)); then
                     usage_class="warn"
                 fi
                 html+="<tr><td>$fs</td><td>$mount</td><td class=\"$usage_class\">$usage</td><td>$avail</td></tr>"
@@ -632,14 +641,14 @@ lfa_format_section_html() {
             html+="</table>"
             ;;
         network)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 if [[ "$key" == "ping" ]]; then
                     html+="<h3>Ping Tests</h3><table><tr><th>Host</th><th>Status</th></tr>"
-                    IFS=',' read -ra pings <<< "$value"
+                    IFS=',' read -ra pings <<<"$value"
                     for ping in "${pings[@]}"; do
-                        IFS=':' read -r _ host status <<< "$ping"
+                        IFS=':' read -r _ host status <<<"$ping"
                         local status_class="ok"
                         [[ "$status" == "failed" ]] && status_class="crit"
                         html+="<tr><td>$host</td><td class=\"$status_class\">$status</td></tr>"
@@ -647,9 +656,9 @@ lfa_format_section_html() {
                     html+="</table>"
                 else
                     html+="<h3>Interfaces</h3><table><tr><th>Name</th><th>State</th><th>IP</th></tr>"
-                    IFS=',' read -ra ifaces <<< "$value"
+                    IFS=',' read -ra ifaces <<<"$value"
                     for iface in "${ifaces[@]}"; do
-                        IFS=':' read -r name state ip <<< "$iface"
+                        IFS=':' read -r name state ip <<<"$iface"
                         html+="<tr><td>$name</td><td>$state</td><td>$ip</td></tr>"
                     done
                     html+="</table>"
@@ -661,9 +670,9 @@ lfa_format_section_html() {
                 html+="<p>Not using systemd</p>"
             else
                 html+="<table><tr><th>Service</th><th>Status</th><th>Enabled</th></tr>"
-                IFS=';' read -ra items <<< "$content"
+                IFS=';' read -ra items <<<"$content"
                 for item in "${items[@]}"; do
-                    IFS=':' read -r name status enabled <<< "$item"
+                    IFS=':' read -r name status enabled <<<"$item"
                     if [[ "$name" == "failed" ]]; then
                         html+="<tr><td colspan=\"3\" class=\"crit\">Failed: $status</td></tr>"
                     else
@@ -689,9 +698,9 @@ Hostname: $(hostname)
 
 "
 
-    IFS='|' read -ra sections <<< "$data"
+    IFS='|' read -ra sections <<<"$data"
     for section_data in "${sections[@]}"; do
-        IFS=':' read -r section content <<< "$section_data"
+        IFS=':' read -r section content <<<"$section_data"
         md+="## ${section^^}\n\n"
         md+=$(lfa_format_section_markdown "$section" "$content")
         md+="\n"
@@ -706,11 +715,11 @@ lfa_format_section_markdown() {
     local md=""
 
     case "$section" in
-        system|memory|cpu|packages|logs|security|kernel|boot)
+        system | memory | cpu | packages | logs | security | kernel | boot)
             md+="| Property | Value |\n|----------|-------|\n"
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 local display_key
                 display_key=$(echo "$key" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g')
                 if [[ "$key" =~ ^(total|used|free|available|swap_total|swap_used|swap_free)$ ]]; then
@@ -721,28 +730,28 @@ lfa_format_section_markdown() {
             ;;
         disk)
             md+="| Filesystem | Mount Point | Usage | Available |\n|------------|-------------|-------|-----------|\n"
-            IFS=',' read -ra items <<< "$content"
+            IFS=',' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS=':' read -r mount fs usage avail <<< "$item"
+                IFS=':' read -r mount fs usage avail <<<"$item"
                 md+="| $fs | $mount | $usage | $avail |\n"
             done
             ;;
         network)
-            IFS=';' read -ra items <<< "$content"
+            IFS=';' read -ra items <<<"$content"
             for item in "${items[@]}"; do
-                IFS='=' read -r key value <<< "$item"
+                IFS='=' read -r key value <<<"$item"
                 if [[ "$key" == "ping" ]]; then
                     md+="### Ping Tests\n\n| Host | Status |\n|------|--------|\n"
-                    IFS=',' read -ra pings <<< "$value"
+                    IFS=',' read -ra pings <<<"$value"
                     for ping in "${pings[@]}"; do
-                        IFS=':' read -r _ host status <<< "$ping"
+                        IFS=':' read -r _ host status <<<"$ping"
                         md+="| $host | $status |\n"
                     done
                 else
                     md+="### Interfaces\n\n| Name | State | IP |\n|------|-------|----|\n"
-                    IFS=',' read -ra ifaces <<< "$value"
+                    IFS=',' read -ra ifaces <<<"$value"
                     for iface in "${ifaces[@]}"; do
-                        IFS=':' read -r name state ip <<< "$iface"
+                        IFS=':' read -r name state ip <<<"$iface"
                         md+="| $name | $state | $ip |\n"
                     done
                 fi
@@ -753,9 +762,9 @@ lfa_format_section_markdown() {
                 md+="Not using systemd\n"
             else
                 md+="| Service | Status | Enabled |\n|---------|--------|---------|\n"
-                IFS=';' read -ra items <<< "$content"
+                IFS=';' read -ra items <<<"$content"
                 for item in "${items[@]}"; do
-                    IFS=':' read -r name status enabled <<< "$item"
+                    IFS=':' read -r name status enabled <<<"$item"
                     if [[ "$name" == "failed" ]]; then
                         md+="| **Failed** | $status | - |\n"
                     else

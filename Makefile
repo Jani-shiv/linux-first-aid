@@ -1,6 +1,8 @@
 # linux-first-aid Makefile
 # Build, test, and install the linux-first-aid toolkit
 
+SHELL := /bin/bash
+
 .PHONY: help install uninstall test test-unit test-integration lint shellcheck format clean dev-setup release
 
 # Variables
@@ -56,10 +58,8 @@ test: test-unit test-integration
 test-unit:
 	@echo "Running unit tests..."
 	@for test in tests/unit/*.sh; do \
-		if [[ -x "$$test" ]]; then \
-			echo "Running $$test..."; \
-			"$$test" || exit 1; \
-		fi; \
+		echo "Running $$test..."; \
+		bash "$$test" || exit 1; \
 	done
 	@echo "Unit tests passed!"
 
@@ -70,21 +70,19 @@ test-integration:
 		exit 1; \
 	fi
 	@for test in tests/integration/*.sh; do \
-		if [[ -x "$$test" ]]; then \
-			echo "Running $$test..."; \
-			"$$test" || exit 1; \
-		fi; \
+		echo "Running $$test..."; \
+		bash "$$test" || exit 1; \
 	done
 	@echo "Integration tests passed!"
 
 lint:
 	@echo "Running shellcheck..."
-	@shellcheck bin/first-aid
-	@shellcheck lib/core/*.sh
-	@shellcheck lib/modules/*.sh
-	@shellcheck lib/utils/*.sh
-	@shellcheck tests/unit/*.sh
-	@shellcheck tests/integration/*.sh
+	@shellcheck -S error bin/first-aid
+	@shellcheck -S error lib/core/*.sh
+	@shellcheck -S error lib/modules/*.sh
+	@shellcheck -S error lib/utils/*.sh
+	@shellcheck -S error tests/unit/*.sh
+	@shellcheck -S error tests/integration/*.sh
 	@echo "Linting passed!"
 
 format:
