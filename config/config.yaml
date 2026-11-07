@@ -1,0 +1,99 @@
+# linux-first-aid configuration
+# Generated on 2026-11-07T17:08:11.251188Z
+
+# General settings
+general:
+  check_interval: 300
+  alert_threshold: "warn"
+  auto_repair: false
+  verbose: false
+  color: "auto"
+
+# Diagnosis settings
+diagnose:
+  categories: "system,disk,memory,cpu,network,services,packages,logs,security,kernel,boot"
+  full_scan: true
+  quick_scan: false
+  timeout: 300
+
+# Repair settings
+repair:
+  dry_run: false
+  force: false
+  backup: true
+  categories: "packages,network,logs,permissions"
+
+# Monitor settings
+monitor:
+  interval: 60
+  alert_threshold: "warn"
+  daemon: false
+  pid_file: "/var/run/first-aid-monitor.pid"
+  log_file: "/var/log/first-aid-monitor.log"
+
+# Check thresholds
+check:
+  disk:
+    threshold_warn: 80
+    threshold_crit: 90
+    threshold_inode_warn: 80
+    threshold_inode_crit: 90
+  memory:
+    threshold_warn: 80
+    threshold_crit: 90
+    swap_warn: 50
+    swap_crit: 80
+  cpu:
+    threshold_warn: 80
+    threshold_crit: 95
+    load_warn: 2.0
+    load_crit: 4.0
+  network:
+    ping_hosts: "8.8.8.8,1.1.1.1"
+    ping_timeout: 5
+    dns_servers: "8.8.8.8,1.1.1.1"
+    check_dns: true
+    check_http: true
+  services:
+    critical_services: "sshd,systemd-resolved,systemd-networkd,cron"
+    check_enabled: true
+  packages:
+    check_updates: true
+    check_broken: true
+    check_orphans: true
+  logs:
+    since: "24h"
+    level: "error"
+    max_entries: 1000
+  security:
+    check_firewall: true
+    check_ssh_config: true
+    check_sudoers: true
+    check_world_writable: true
+    check_suid: true
+  kernel:
+    check_params: true
+    check_modules: true
+    check_dmesg: true
+  boot:
+    check_grub: true
+    check_initramfs: true
+    check_fstab: true
+
+# Fix settings
+fix:
+  clean_package_cache:
+    max_age: 30
+  clear_journals:
+    max_size: "500M"
+  trim_ssd:
+    enabled: true
+  fix_permissions:
+    paths: "/etc,/usr,/var"
+
+# Report settings
+report:
+  format: "text"
+  output: "-"
+  include_timestamp: true
+  include_hostname: true

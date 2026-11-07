@@ -1,0 +1,207 @@
+#!/usr/bin/env bash
+#
+# linux-first-aid - Linux Troubleshooting Toolkit
+# Main entry point for the CLI
+#
+# Copyright (c) 2024 linux-first-aid contributors
+# Licensed under the MIT License
+
+set -euo pipefail
+
+# shellcheck source=/dev/null
+source "${LFA_LIB_DIR:-/usr/share/linux-first-aid/lib}/core/common.sh"
+source "${LFA_LIB_DIR:-/usr/share/linux-first-aid/lib}/core/logger.sh"
+source "${LFA_LIB_DIR:-/usr/share/linux-first-aid/lib}/core/config.sh"
+
+readonly LFA_VERSION="1.0.0"
+readonly LFA_NAME="linux-first-aid"
+
+usage() {
+    cat <<'EOF'
+linux-first-aid - Linux Troubleshooting Toolkit
+
+USAGE:
+    first-aid [GLOBAL OPTIONS] <COMMAND> [COMMAND OPTIONS]
+
+GLOBAL OPTIONS:
+    -h, --help          Show this help message
+    -v, --version       Show version information
+    -c, --config FILE   Use custom config file
+    -q, --quiet         Suppress non-error output
+    -d, --debug         Enable debug output
+    --no-color          Disable colored output
+
+COMMANDS:
+    diagnose            Run comprehensive system diagnosis
+    repair              Attempt automatic repairs for common issues
+    monitor             Start continuous system monitoring
+    check               Run specific health checks
+    fix                 Apply specific fixes
+    analyze             Analyze logs, performance, or configuration
+    report              Generate system health report
+    config              Manage configuration
+
+DIAGNOSE SUBCOMMANDS:
+    first-aid diagnose [--full] [--quick] [--category CATEGORY]
+
+REPAIR SUBCOMMANDS:
+    first-aid repair [--dry-run] [--category CATEGORY] [--force]
+
+MONITOR SUBCOMMANDS:
+    first-aid monitor [--interval SECONDS] [--alert-threshold LEVEL]
+
+CHECK SUBCOMMANDS:
+    first-aid check <check-name> [options]
+    Available checks: disk, memory, cpu, network, services, packages, logs, security, kernel, boot
+
+FIX SUBCOMMANDS:
+    first-aid fix <fix-name> [options]
+    Available fixes: clean-package-cache, fix-broken-packages, reset-network, clear-journals, trim-ssd, fix-permissions
+
+ANALYZE SUBCOMMANDS:
+    first-aid analyze <type> [options]
+    Types: logs, performance, startup, crashes, security
+
+REPORT SUBCOMMANDS:
+    first-aid report [--format FORMAT] [--output FILE]
+    Formats: text, json, html, markdown
+
+CONFIG SUBCOMMANDS:
+    first-aid config [get|set|list|reset] [key] [value]
+
+EXAMPLES:
+    first-aid diagnose --full
+    first-aid check disk --threshold 90
+    first-aid repair --dry-run --category packages
+    first-aid monitor --interval 30 --alert-threshold warning
+    first-aid analyze logs --since "1 hour ago" --level error
+    first-aid report --format html --output report.html
+
+EXIT CODES:
+    0   Success
+    1   General error
+    2   Invalid usage
+    3   Check failed (issues found)
+    4   Repair failed
+    5   Permission denied
+    6   Configuration error
+
+For more information, see: https://github.com/linux-first-aid/linux-first-aid
+EOF
+}
+
+version() {
+    echo "${LFA_NAME} version ${LFA_VERSION}"
+}
+
+main() {
+    local cmd=""
+    local args=()
+    local config_file=""
+    local quiet=false
+    local debug=false
+    local no_color=false
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            -v|--version)
+                version
+                exit 0
+                ;;
+            -c|--config)
+                config_file="$2"
+                shift 2
+                ;;
+            -q|--quiet)
+                quiet=true
+                shift
+                ;;
+            -d|--debug)
+                debug=true
+                shift
+                ;;
+            --no-color)
+                no_color=true
+                shift
+                ;;
+            diagnose|repair|monitor|check|fix|analyze|report|config)
+                cmd="$1"
+                shift
+                break
+                ;;
+            -*)
+                log_error "Unknown option: $1"
+                usage
+                exit 2
+                ;;
+            *)
+                log_error "Unknown command: $1"
+                usage
+                exit 2
+                ;;
+        esac
+    done
+
+    args=("$@")
+
+    if [[ -z "$cmd" ]]; then
+        usage
+        exit 2
+    fi
+
+    export LFA_QUIET="$quiet"
+    export LFA_DEBUG="$debug"
+    export LFA_NO_COLOR="$no_color"
+
+    if [[ -n "$config_file" ]]; then
+        export LFA_CONFIG_FILE="$config_file"
+    fi
+
+    lfa_init_logger
+    lfa_load_config
+
+    case "$cmd" in
+        diagnose)
+            source "${LFA_LIB_DIR}/modules/diagnose.sh"
+            lfa_diagnose "${args[@]}"
+            ;;
+        repair)
+            source "${LFA_LIB_DIR}/modules/repair.sh"
+            lfa_repair "${args[@]}"
+            ;;
+        monitor)
+            source "${LFA_LIB_DIR}/modules/monitor.sh"
+            lfa_monitor "${args[@]}"
+            ;;
+        check)
+            source "${LFA_LIB_DIR}/modules/check.sh"
+            lfa_check "${args[@]}"
+            ;;
+        fix)
+            source "${LFA_LIB_DIR}/modules/fix.sh"
+            lfa_fix "${args[@]}"
+            ;;
+        analyze)
+            source "${LFA_LIB_DIR}/modules/analyze.sh"
+            lfa_analyze "${args[@]}"
+            ;;
+        report)
+            source "${LFA_LIB_DIR}/modules/report.sh"
+            lfa_report "${args[@]}"
+            ;;
+        config)
+            source "${LFA_LIB_DIR}/modules/config.sh"
+            lfa_config_cmd "${args[@]}"
+            ;;
+        *)
+            log_error "Command not implemented: $cmd"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"
